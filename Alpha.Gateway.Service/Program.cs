@@ -6,6 +6,7 @@ using Alpha.Gateway.Authentication;
 using Alpha.Gateway.Endpoints;
 using Refit;
 using Alpha.Gateway.Logging;
+using Dapr.Client;
 
 internal class Program
 {
@@ -15,25 +16,23 @@ internal class Program
 
         builder.Services.AddMemoryCache();
         builder.Services.AddTransient<AlphaAuthenticationDelegatinHandler>();
-        builder.Services.AddTransient<ConsulRegistryHandler>();
         builder.Services.AddTransient<HttpLoggingHandler>();
         builder.Services.AddHttpContextAccessor();
 
         builder.Services.AddRefitClient<ITokenService>()
-            .ConfigureHttpClient(client => client.BaseAddress = new Uri("http://token.service:8080"))
-            .AddHttpMessageHandler<ConsulRegistryHandler>();
+            .ConfigureHttpClient(options => { options.BaseAddress = new Uri($"http://token"); })
+            .AddHttpMessageHandler(_ => new InvocationHandler());
 
         builder.Services.AddRefitClient<IIdentityService>()
-            .ConfigureHttpClient(client => client.BaseAddress = new Uri("http://identity.service:8080"))
-            .AddHttpMessageHandler<ConsulRegistryHandler>()
+            .ConfigureHttpClient(options => { options.BaseAddress = new Uri($"http://identity"); })
+            .AddHttpMessageHandler(_ => new InvocationHandler())
             .AddHttpMessageHandler<AlphaAuthenticationDelegatinHandler>();
 
         builder.Services.AddRefitClient<IWeatherService>()
-            .ConfigureHttpClient(client => client.BaseAddress = new Uri("http://weather.service:8080"))
-            .AddHttpMessageHandler<ConsulRegistryHandler>()
+            .ConfigureHttpClient(options => { options.BaseAddress = new Uri($"http://weather"); })
+            .AddHttpMessageHandler(_ => new InvocationHandler())
             .AddHttpMessageHandler<AlphaAuthenticationDelegatinHandler>();
 
-        builder.Services.ConsulServicesConfig(builder.Configuration.GetSection("Consul").Get<ConsulConfig>()!);
 
         builder.Services.AddHealthChecks();
 
